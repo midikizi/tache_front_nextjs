@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authService } from "@/app/services/authService";
 
-export default async function RegisterPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
