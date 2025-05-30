@@ -5,13 +5,71 @@ import { useRouter } from 'next/navigation';
 import { Task, taskService } from '../services/taskService';
 import { authService } from '../services/authService';
 
+// Composant réutilisable pour le formulaire de tâche
+function TaskForm({
+  formData,
+  setFormData,
+  onSubmit,
+  onCancel,
+  isEdit = false
+}: {
+  formData: { titre: string; description: string };
+  setFormData: (data: { titre: string; description: string }) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel?: () => void;
+  isEdit?: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="bg-white/90 rounded-2xl shadow-2xl p-8 border border-gray-300 space-y-6">
+      <div>
+        <label className="block text-lg font-bold text-gray-900 mb-2">Titre</label>
+        <input
+          type="text"
+          value={formData.titre}
+          onChange={e => setFormData({ ...formData, titre: e.target.value })}
+          className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-lg bg-white placeholder-gray-400"
+          required
+          placeholder="Titre de la tâche"
+        />
+      </div>
+      <div>
+        <label className="block text-lg font-bold text-gray-900 mb-2">Description</label>
+        <textarea
+          value={formData.description}
+          onChange={e => setFormData({ ...formData, description: e.target.value })}
+          className="w-full rounded-lg border-2 border-gray-900 px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-lg bg-white placeholder-gray-400"
+          rows={3}
+          required
+          placeholder="Décris ta tâche ici..."
+        />
+      </div>
+      <div className="flex justify-end space-x-4">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 rounded-xl text-white bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 transition-all font-semibold shadow"
+          >
+            Annuler
+          </button>
+        )}
+        <button
+          type="submit"
+          className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold shadow-lg hover:from-blue-600 hover:to-purple-700 transition-all text-lg tracking-widest"
+        >
+          {isEdit ? 'Enregistrer' : 'Créer'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function Dashboard() {
     const router = useRouter();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [newTask, setNewTask] = useState({ titre: '', description: '' });
-    const [showNewTaskForm, setShowNewTaskForm] = useState(false);
 
     useEffect(() => {
         if (!authService.isAuthenticated()) {
@@ -38,7 +96,6 @@ export default function Dashboard() {
             const task = await taskService.createTask(newTask);
             setTasks([...tasks, task]);
             setNewTask({ titre: '', description: '' });
-            setShowNewTaskForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Erreur lors de la création de la tâche');
         }
@@ -90,54 +147,15 @@ export default function Dashboard() {
             )}
 
             <div className="mb-6">
-                {!showNewTaskForm ? (
-                    <button
-                        onClick={() => setShowNewTaskForm(true)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                        Nouvelle tâche
-                    </button>
-                ) : (
-                    <form onSubmit={handleCreateTask} className="bg-white p-6 rounded-lg shadow-lg">
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Titre</label>
-                                <input
-                                    type="text"
-                                    value={newTask.titre}
-                                    onChange={(e) => setNewTask({ ...newTask, titre: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Description</label>
-                                <textarea
-                                    value={newTask.description}
-                                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                    rows={3}
-                                    required
-                                />
-                            </div>
-                            <div className="flex justify-end space-x-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowNewTaskForm(false)}
-                                    className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                >
-                                    Créer
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                )}
+                <div className="max-w-2xl mx-auto">
+                    <TaskForm
+                        formData={newTask}
+                        setFormData={setNewTask}
+                        onSubmit={handleCreateTask}
+                        onCancel={() => setNewTask({ titre: '', description: '' })}
+                        isEdit={false}
+                    />
+                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -147,7 +165,8 @@ export default function Dashboard() {
                             <h3 className="text-xl font-semibold text-gray-800">{task.titre}</h3>
                             <button
                                 onClick={() => handleDeleteTask(task.id)}
-                                className="text-red-500 hover:text-red-700"
+                                className="px-3 py-1 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-bold shadow hover:from-red-600 hover:to-pink-600 transition-all text-lg"
+                                title="Supprimer la tâche"
                             >
                                 ×
                             </button>
@@ -156,15 +175,15 @@ export default function Dashboard() {
                         <div className="flex justify-between items-center">
                             <button
                                 onClick={() => handleToggleComplete(task)}
-                                className={`px-3 py-1 rounded-full text-sm ${task.complete 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-yellow-100 text-yellow-800'}`}
+                                className={`px-4 py-2 rounded-xl font-bold shadow transition-all text-sm tracking-widest ${task.complete 
+                                    ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600' 
+                                    : 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-yellow-900 hover:from-yellow-500 hover:to-yellow-700'}`}
                             >
                                 {task.complete ? 'Terminée ✓' : 'En cours'}
                             </button>
                             <button
                                 onClick={() => router.push(`/taches/${task.id}`)}
-                                className="text-blue-500 hover:text-blue-700 text-sm"
+                                className="text-blue-500 hover:text-blue-700 text-sm underline underline-offset-2 font-semibold"
                             >
                                 Voir détails →
                             </button>

@@ -90,4 +90,5 @@ export const taskService = {
             throw new Error(error.errors?.[0] || 'Erreur de suppression de la tâche');
         }
     }
+    
 };
